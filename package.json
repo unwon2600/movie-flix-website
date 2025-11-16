@@ -1,0 +1,15 @@
+{
+  "name":"movie-flix-admin",
+  "version":"1.0.0",
+  "private":true,
+  "scripts":{
+    "dev":"vercel dev",
+    "start":"node server.js"
+  },
+  "dependencies":{
+    "bcryptjs":"^2.4.3",
+    "jsonwebtoken":"^9.0.0",
+    "mongodb":"^5.12.0",
+    "node-fetch":"^2.6.7"
+  }
+}
