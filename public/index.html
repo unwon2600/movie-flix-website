@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Movie Flix — Premium</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#050506; --gold-1:#ffd166; --gold-2:#ffb703; --muted:#bfc9d9;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Poppins",system-ui;background:
+      radial-gradient(1200px 400px at 10% 10%, rgba(255,181,67,0.03), transparent),
+      radial-gradient(900px 300px at 90% 90%, rgba(255,215,102,0.02), transparent),
+      var(--bg); color:#fff; -webkit-font-smoothing:antialiased;padding-bottom:60px;}
+    header{display:flex;align-items:center;gap:14px;justify-content:center;padding:18px;background:
+      linear-gradient(180deg, rgba(255,215,102,0.03), transparent);border-bottom:1px solid rgba(255,215,102,0.04);position:sticky;top:0;z-index:50}
+    header img{height:46px;} header h1{ margin:0; color:var(--gold-1); font-size:20px; }
+
+    main{ max-width:1200px; margin:22px auto; padding:0 18px; }
+    .toolbar { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; }
+    #searchBar{ width:100%; max-width:680px; padding:10px 12px; border-radius:10px; background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005)); border:1px solid rgba(255,255,255,0.03); color:var(--muted); font-size:14px; }
+
+    .btn { background: linear-gradient(90deg,var(--gold-1),var(--gold-2)); color:#071018; border:none; padding:10px 12px; border-radius:10px; font-weight:700; cursor:pointer; }
+
+    .movie-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:18px; }
+    .movie{ position:relative; border-radius:12px; overflow:hidden; background: linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.01)); border:1px solid rgba(255,215,102,0.03); transition: transform .15s ease, box-shadow .15s ease; box-shadow: 0 8px 28px rgba(2,6,23,0.6); cursor:pointer; display:flex; flex-direction:column; }
+    .movie:hover{ transform:translateY(-6px); box-shadow: 0 20px 48px rgba(0,0,0,0.6); }
+    .poster{ width:100%; height:280px; object-fit:cover; display:block; background:#0b0b0b; }
+    .meta{ padding:10px; display:flex; flex-direction:column; gap:6px; }
+    .meta h3{ margin:0; font-size:15px; color:var(--gold-1); }
+    .meta p{ margin:0; font-size:13px; color:var(--muted); }
+
+    .card-actions{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+    .card-actions a{ text-decoration:none; padding:8px 10px; border-radius:8px; font-weight:700; font-size:13px; }
+    .download{ background: linear-gradient(90deg,#ffd166,#ffb703); color:#071018; }
+    .telegram{ background:#2aabee; color:white; }
+
+    /* Modal */
+    .movie-modal{ display:none; position:fixed; inset:0; background: rgba(2,6,23,0.86); z-index:3000; justify-content:center; align-items:center; padding:18px; }
+    .movie-modal.show{ display:flex; }
+    .movie-modal-content{ width:100%; max-width:920px; border-radius:12px; padding:18px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2)); display:flex; gap:18px; align-items:flex-start; color:var(--muted); border:1px solid rgba(255,215,102,0.03); box-shadow: 0 30px 80px rgba(0,0,0,0.7); position:relative; }
+    .modal-left img{ width:240px; height:330px; object-fit:cover; border-radius:10px; background:#020214; }
+    .modal-right{ flex:1; } .modal-right h2{ margin:0; color:var(--gold-1); font-size:22px; } .modal-right .year{ color:var(--gold-2); margin-top:6px; font-weight:600 } .modal-right .plot{ margin-top:12px; line-height:1.5; color:#dce6f8; }
+    .modal-buttons{ margin-top:14px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    .modal-buttons a{ text-decoration:none; padding:10px 14px; border-radius:10px; font-weight:700; color:#081018; background: linear-gradient(90deg,#ffd166,#ffb703); }
+    .modal-buttons a.ghost{ background: transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.04); }
+    .modal-close{ position:absolute; right:14px; top:10px; font-size:22px; cursor:pointer; color:var(--gold-1); background:transparent; border:none; }
+    .file-size{ margin-top:8px; color:var(--gold-2); font-weight:700; }
+
+    .quality-list { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .quality-btn { padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.03); color:var(--muted); cursor:pointer; border:1px solid rgba(255,255,255,0.03); }
+
+    .empty{ padding:20px; border-radius:10px; background:linear-gradient(180deg, rgba(255,215,102,0.03), transparent); color: #ffd; text-align:center; }
+
+    @media (max-width:880px){ .movie-modal-content{ flex-direction:column; align-items:center; text-align:center; } .modal-left img{ width:180px; height:260px; } .poster{ height:220px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="https://img.icons8.com/fluency/48/000000/movie-projector.png" alt="logo">
+    <h1>Movie Flix</h1>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <select id="genreFilter" style="padding:10px;border-radius:10px;background:#0b0b0b;border:1px solid rgba(255,255,255,0.03);color:var(--muted)">
+        <option value="">All Genres</option>
+      </select>
+      <input id="searchBar" type="text" placeholder="Search movies..." />
+      <div>
+        <button id="openAdmin" class="btn">Admin</button>
+      </div>
+    </div>
+
+    <section id="contentArea">
+      <div id="movieGrid" class="movie-grid"></div>
+      <div id="emptyState" class="empty" style="display:none;margin-top:18px;">No movies yet. Admin can add movies from dashboard.</div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div id="movieModal" class="movie-modal" role="dialog" aria-hidden="true">
+    <div class="movie-modal-content">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div class="modal-left">
+        <img id="modalPoster" src="" alt="poster">
+      </div>
+      <div class="modal-right">
+        <h2 id="modalTitle">Title</h2>
+        <div class="year" id="modalYear">Year</div>
+        <div class="plot" id="modalPlot">Plot</div>
+
+        <div id="modalQualities" class="quality-list"></div>
+
+        <div class="file-size" id="fileSize"></div>
+
+        <div class="modal-buttons" id="modalButtons">
+          <!-- dynamic: download/telegram per quality -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Config */
+const API_MOVIES = '/api/movies'; // GET -> array
+const movieGrid = document.getElementById('movieGrid');
+const searchBar = document.getElementById('searchBar');
+const openAdmin = document.getElementById('openAdmin');
+const genreFilter = document.getElementById('genreFilter');
+
+const movieModal = document.getElementById('movieModal');
+const modalPoster = document.getElementById('modalPoster');
+const modalTitle = document.getElementById('modalTitle');
+const modalYear = document.getElementById('modalYear');
+const modalPlot = document.getElementById('modalPlot');
+const modalClose = document.getElementById('modalClose');
+const fileSizeDiv = document.getElementById('fileSize');
+const modalButtons = document.getElementById('modalButtons');
+const modalQualities = document.getElementById('modalQualities');
+const emptyState = document.getElementById('emptyState');
+
+function escapeHtml(unsafe){ if(!unsafe) return ""; return unsafe.replace(/[&<"'>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+function truncate(s,n=320){ if(!s) return ""; return s.length>n ? s.slice(0,n-1)+'…' : s; }
+
+async function getFileSize(url){
+  try {
+    const res = await fetch(url, { method:'HEAD' });
+    if(!res.ok) return null;
+    const size = res.headers.get('Content-Length') || res.headers.get('content-length');
+    if(!size) return null;
+    const mb = Number(size)/(1024*1024);
+    if(mb>1024) return (mb/1024).toFixed(2)+' GB';
+    return mb.toFixed(2)+' MB';
+  } catch(e){ return null; }
+}
+
+function createDownloadAnchor(url, filename=""){
+  const a = document.createElement('a');
+  a.href = url;
+  if(filename) a.download = filename; else a.setAttribute('download','');
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* Render */
+let movies = [];
+let allGenres = new Set();
+
+function renderGenreOptions(){
+  const arr = Array.from(allGenres).sort();
+  genreFilter.innerHTML = `<option value="">All Genres</option>` + arr.map(g=>`<option value="${g}">${g}</option>`).join('');
+}
+
+function renderMovies(list){
+  movieGrid.innerHTML = '';
+  if(!list || list.length===0){ emptyState.style.display = 'block'; return; } else emptyState.style.display = 'none';
+  list.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'movie';
+    div.innerHTML = `
+      <img class="poster" src="${escapeHtml(m.poster || 'https://via.placeholder.com/400x600?text=No+Poster')}" alt="${escapeHtml(m.title)}">
+      <div class="meta">
+        <h3>${escapeHtml(m.title)}</h3>
+        <p>${escapeHtml(m.year || '')}</p>
+        <div class="card-actions">
+          ${ Object.keys(m.qualities||{}).map(q => m.qualities[q].direct ? `<a href="#" class="download" data-direct="${escapeHtml(m.qualities[q].direct)}" data-quality="${q}">${q} DL</a>` : '').join('') }
+          ${ Object.keys(m.qualities||{}).map(q => m.qualities[q].telegram ? `<a href="${escapeHtml(m.qualities[q].telegram)}" target="_blank" class="telegram">${q} TG</a>` : '').join('') }
+        </div>
+      </div>
+    `;
+
+    div.addEventListener('click', (ev) => {
+      const target = ev.target;
+      if(target.tagName === 'A'){
+        if(target.classList.contains('download')){
+          ev.preventDefault();
+          const direct = target.getAttribute('data-direct');
+          if(direct) createDownloadAnchor(direct);
+        }
+        return;
+      }
+      openMovieModal(m);
+    });
+
+    movieGrid.appendChild(div);
+  });
+}
+
+/* Load data */
+async function loadMoviesFromServer(){
+  try {
+    const res = await fetch(API_MOVIES);
+    if(!res.ok) throw new Error('no server');
+    const data = await res.json();
+    movies = Array.isArray(data) ? data : (data || []);
+    // collect genres
+    allGenres = new Set();
+    movies.forEach(m => (m.genres||[]).forEach(g => allGenres.add(g)));
+    renderGenreOptions();
+    localStorage.setItem('movies', JSON.stringify(movies));
+    renderMovies(movies);
+  } catch (err){
+    const local = JSON.parse(localStorage.getItem('movies') || '[]');
+    movies = local;
+    allGenres = new Set();
+    movies.forEach(m => (m.genres||[]).forEach(g => allGenres.add(g)));
+    renderGenreOptions();
+    renderMovies(movies);
+  }
+}
+
+/* Modal open */
+async function openMovieModal(m){
+  modalPoster.src = m.poster || 'https://via.placeholder.com/400x600?text=No+Poster';
+  modalTitle.textContent = m.title || '';
+  modalYear.textContent = m.year || '';
+  modalPlot.textContent = truncate(m.plot || 'No description available.', 800);
+
+  // qualities
+  modalQualities.innerHTML = '';
+  modalButtons.innerHTML = '';
+  fileSizeDiv.textContent = '';
+
+  const qualities = m.qualities || {};
+  const qKeys = Object.keys(qualities);
+  if(qKeys.length === 0){
+    modalQualities.innerHTML = '<div class="small" style="color:var(--muted)">No download links available</div>';
+  } else {
+    qKeys.forEach(q => {
+      const qBtn = document.createElement('button');
+      qBtn.className = 'quality-btn';
+      qBtn.textContent = q;
+      qBtn.onclick = async () => {
+        // show buttons for this quality
+        modalButtons.innerHTML = '';
+        fileSizeDiv.textContent = '';
+        const info = qualities[q] || {};
+        if(info.direct){
+          const dl = document.createElement('a');
+          dl.href = '#';
+          dl.className = 'download';
+          dl.textContent = `Download Now (${q})`;
+          dl.onclick = (ev) => { ev.preventDefault(); createDownloadAnchor(info.direct); };
+          modalButtons.appendChild(dl);
+        }
+        if(info.telegram){
+          const tg = document.createElement('a');
+          tg.href = info.telegram;
+          tg.target = '_blank';
+          tg.className = 'telegram';
+          tg.textContent = `Telegram File (${q})`;
+          modalButtons.appendChild(tg);
+        }
+        // filesize detect for direct if present
+        if(info.direct){
+          fileSizeDiv.textContent = 'Checking file size...';
+          const size = await getFileSize(info.direct);
+          fileSizeDiv.textContent = size ? `File Size (${q}): ${size}` : 'File Size: Not available';
+        }
+      };
+      modalQualities.appendChild(qBtn);
+    });
+    // auto-click first quality to show buttons
+    setTimeout(()=>{ if(modalQualities.firstChild) modalQualities.firstChild.click(); }, 80);
+  }
+
+  movieModal.classList.add('show');
+  movieModal.setAttribute('aria-hidden','false');
+}
+
+modalClose.onclick = () => { movieModal.classList.remove('show'); movieModal.setAttribute('aria-hidden','true'); };
+window.addEventListener('click', (e) => { if(e.target === movieModal) modalClose.onclick(); });
+window.addEventListener('keydown', (e) => { if(e.key === 'Escape' && movieModal.classList.contains('show')) modalClose.onclick(); });
+
+/* Search & Filter */
+searchBar.addEventListener('input', () => {
+  const q = searchBar.value.trim().toLowerCase();
+  const sel = genreFilter.value;
+  let list = movies.slice();
+  if(sel) list = list.filter(m => (m.genres||[]).includes(sel));
+  if(q) list = list.filter(m => ((m.title||'') + ' ' + (m.plot||'')).toLowerCase().includes(q));
+  renderMovies(list);
+});
+genreFilter.addEventListener('change', () => {
+  searchBar.dispatchEvent(new Event('input'));
+});
+
+/* Admin button */
+openAdmin.onclick = () => { window.location.href = '/login.html'; };
+
+/* Init */
+document.addEventListener('DOMContentLoaded', loadMoviesFromServer);
+</script>
+</body>
+</html>
