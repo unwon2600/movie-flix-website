@@ -10,9 +10,10 @@
     h2{color:#ffd166;margin:0 0 12px 0}
     label{font-size:13px;color:#bcd}
     input{width:100%;padding:10px;margin:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#081226;color:#fff}
-    button{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:none;background:linear-gradient(90deg,#ffd166,#ffb703);font-weight:700;color:#061018}
+    button{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:none;background:linear-gradient(90deg,#ffd166,#ffb703);font-weight:700;color:#061018;cursor:pointer}
     .muted{font-size:13px;color:#9fb0d1;margin-top:8px;text-align:center}
     .switch{background:transparent;border:0;color:#ffd166;cursor:pointer;margin-left:6px}
+    #msg{color:#ffb;margin-top:8px}
   </style>
 </head>
 <body>
@@ -22,12 +23,9 @@
     <div id="auth-area">
       <label>Email</label>
       <input id="email" type="email" placeholder="admin@you.com" />
-
       <label>Password</label>
       <input id="password" type="password" placeholder="••••••••" />
-
       <button id="loginBtn">Sign in</button>
-
       <p class="muted">No account? <button class="switch" id="gotoRegister">Register</button></p>
     </div>
 
@@ -41,46 +39,41 @@
       <p class="muted">Already have account? <button class="switch" id="gotoLogin">Login</button></p>
     </div>
 
-    <p id="msg" style="color:#ffb"></p>
+    <p id="msg"></p>
   </div>
 
 <script>
-const API_BASE = "/api"; // serverless root
+const API_BASE = "/api";
+const gotoRegister = document.getElementById('gotoRegister');
+const gotoLogin = document.getElementById('gotoLogin');
+const authArea = document.getElementById('auth-area');
+const registerArea = document.getElementById('register-area');
+const msg = document.getElementById('msg');
 
-document.getElementById('gotoRegister').onclick = ()=> {
-  document.getElementById('auth-area').style.display='none';
-  document.getElementById('register-area').style.display='block';
-};
-document.getElementById('gotoLogin').onclick = ()=> {
-  document.getElementById('auth-area').style.display='block';
-  document.getElementById('register-area').style.display='none';
-};
+gotoRegister.onclick = ()=> { authArea.style.display='none'; registerArea.style.display='block'; msg.textContent=''; };
+gotoLogin && (gotoLogin.onclick = ()=> { authArea.style.display='block'; registerArea.style.display='none'; msg.textContent=''; });
 
 async function postJSON(url, body){
-  const r = await fetch(url, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(body)
-  });
+  const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
   return r.json();
 }
 
 document.getElementById('registerBtn').onclick = async () => {
   const email = document.getElementById('regEmail').value.trim();
   const password = document.getElementById('regPassword').value;
-  if(!email || !password){ alert('Enter email & password'); return; }
-  const res = await postJSON(API_BASE + '/auth/register', {email,password});
-  document.getElementById('msg').textContent = res.message || (res.ok ? 'Registered' : JSON.stringify(res));
-  if(res.token){ localStorage.setItem('mf_token', res.token); window.location.href = '/admin.html'; }
+  if(!email || !password){ msg.textContent = 'Enter email & password'; return; }
+  const res = await postJSON(API_BASE + '/auth/register', { email, password });
+  if(res.error) msg.textContent = res.error || JSON.stringify(res);
+  else { msg.textContent = 'Registered. Please login.'; authArea.style.display='block'; registerArea.style.display='none'; }
 };
 
 document.getElementById('loginBtn').onclick = async () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
-  if(!email || !password){ alert('Enter email & password'); return; }
-  const res = await postJSON(API_BASE + '/auth/login', {email,password});
-  if(res.token){ localStorage.setItem('mf_token', res.token); window.location.href = '/admin.html'; }
-  else document.getElementById('msg').textContent = res.message || 'Login failed';
+  if(!email || !password){ msg.textContent = 'Enter email & password'; return; }
+  const res = await postJSON(API_BASE + '/auth/login', { email, password });
+  if(res.error) msg.textContent = res.error || 'Login failed';
+  else { localStorage.setItem('mf_token', res.token); localStorage.setItem('admin_email', email); window.location.href = '/admin.html'; }
 };
 </script>
 </body>
