@@ -1,0 +1,43 @@
+<script>
+  async function apiFetch(path, opts = {}) {
+    opts.headers = opts.headers || {};
+    opts.headers['Content-Type'] = 'application/json';
+    const token = localStorage.getItem('mf_token'); // login flow should set mf_token
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+    const r = await fetch(path, opts);
+    if (r.status === 401) {
+      alert('Not authorized — please login again');
+      localStorage.removeItem('mf_token');
+      window.location.href = '/login.html';
+      return;
+    }
+    return r.json();
+  }
+
+  document.getElementById('addMovieBtn')?.addEventListener('click', async () => {
+    const title = document.getElementById('title')?.value.trim();
+    if (!title) { alert('Enter title'); return; }
+
+    const qualities = {};
+    const p480 = document.getElementById('p480')?.value.trim();
+    const p720 = document.getElementById('p720')?.value.trim();
+    const p1080 = document.getElementById('p1080')?.value.trim();
+    if (p480) qualities['480p'] = { direct: p480 };
+    if (p720) qualities['720p'] = { direct: p720 };
+    if (p1080) qualities['1080p'] = { direct: p1080 };
+
+    const res = await apiFetch('/api/movies', {
+      method: 'POST',
+      body: JSON.stringify({ title, qualities })
+    });
+
+    if (res && res.success) {
+      alert('Movie added');
+      // clear inputs
+      ['title','p480','p720','p1080'].forEach(id => { const el = document.getElementById(id); if (el) el.value=''; });
+    } else {
+      alert((res && res.error) || 'Error adding movie');
+      console.error(res);
+    }
+  });
+</script>
