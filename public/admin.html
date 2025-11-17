@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Movie Flix Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#050506;--gold:#ffd166;--muted:#9fb0d1}
+    body{margin:0;font-family:Poppins,system-ui;background:linear-gradient(180deg,#071022,#050506);color:#fff}
+    .wrap{display:flex;min-height:100vh}
+    .sidebar{width:260px;background:#071022;padding:22px;border-right:1px solid rgba(255,215,102,0.03)}
+    .brand{color:var(--gold);font-size:20px;font-weight:700;margin-bottom:18px}
+    .nav button{display:block;background:transparent;border:0;color:var(--muted);padding:10px 6px;text-align:left;width:100%;cursor:pointer;border-radius:6px}
+    .nav button.active{background:linear-gradient(90deg,rgba(255,209,102,0.08),rgba(255,183,72,0.03));color:var(--gold)}
+    .main{flex:1;padding:18px;overflow:auto}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.12));padding:16px;border-radius:12px;border:1px solid rgba(255,215,102,0.03);box-shadow:0 10px 40px rgba(0,0,0,0.6)}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+    .form-row{display:flex;gap:10px;flex-wrap:wrap}
+    input,select,textarea{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:#061126;color:#fff;min-width:160px}
+    button.btn{background:linear-gradient(90deg,#ffd166,#ffb703);border:none;padding:10px 12px;border-radius:8px;color:#071018;font-weight:700;cursor:pointer}
+    .movies-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+    .movie-card{background:#071226;padding:10px;border-radius:10px}
+    .movie-card img{width:100%;height:160px;object-fit:cover;border-radius:8px}
+    .small{font-size:13px;color:var(--muted)}
+    .actions{display:flex;gap:8px;margin-top:8px}
+    .actions button{padding:8px;border-radius:8px;border:none;cursor:pointer}
+    .btn-danger{background:#ff5c5c;color:#fff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="sidebar">
+      <div class="brand">Movie Flix — Admin</div>
+      <div class="nav">
+        <button id="navDashboard" class="active">Dashboard</button>
+        <button id="navAdd">Add Movie</button>
+        <button id="navSettings">Settings</button>
+        <button id="logoutBtn" style="margin-top:16px;color:#ffb3b3">Logout</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <div class="small">Manage movies, edits, and stats</div>
+        </div>
+        <div>
+          <span class="small" id="adminEmail"></span>
+        </div>
+      </div>
+
+      <section id="dashboardView">
+        <div class="grid">
+          <div class="card"><h3>Total Movies</h3><div id="totalMovies" style="font-size:28px;color:var(--gold)">0</div></div>
+          <div class="card"><h3>With Direct Link</h3><div id="withDirect" style="font-size:28px;color:var(--gold)">0</div></div>
+          <div class="card"><h3>With Telegram Link</h3><div id="withTelegram" style="font-size:28px;color:var(--gold)">0</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Recent Movies</h3>
+          <div id="recentList" class="movies-list"></div>
+        </div>
+      </section>
+
+      <section id="addView" style="display:none">
+        <div class="card">
+          <h3>Add Movie (enter name → OMDb auto-fetch)</h3>
+          <div class="form-row" style="margin-top:8px">
+            <input id="titleInput" placeholder="Movie Title (e.g. Avengers Endgame)" />
+            <input id="genresInput" placeholder="Genres (comma separated)" />
+            <input id="direct480" placeholder="480p Direct Link (optional)" />
+            <input id="tg480" placeholder="480p Telegram Link (optional)" />
+            <input id="direct720" placeholder="720p Direct Link (optional)" />
+            <input id="tg720" placeholder="720p Telegram Link (optional)" />
+            <input id="direct1080" placeholder="1080p Direct Link (optional)" />
+            <input id="tg1080" placeholder="1080p Telegram Link (optional)" />
+            <button class="btn" id="addMovieBtn">Add Movie</button>
+          </div>
+          <p class="small">Poster/plot auto fetch from OMDb (server). Add direct link to enable auto-download button.</p>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3>Edit / Delete</h3>
+          <div id="allMovies" class="movies-list"></div>
+        </div>
+      </section>
+
+      <section id="settingsView" style="display:none">
+        <div class="card">
+          <h3>Settings</h3>
+          <div class="small">Change OMDb key or JWT secret in server env (Vercel).</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+const API_BASE = "/api";
+let token = localStorage.getItem('mf_token');
+
+if(!token){ location.href = '/login.html'; }
+
+// DOM refs
+const navDashboard = document.getElementById('navDashboard');
+const navAdd = document.getElementById('navAdd');
+const navSettings = document.getElementById('navSettings');
+const logoutBtn = document.getElementById('logoutBtn');
+
+const dashboardView = document.getElementById('dashboardView');
+const addView = document.getElementById('addView');
+const settingsView = document.getElementById('settingsView');
+const pageTitle = document.getElementById('pageTitle');
+const adminEmail = document.getElementById('adminEmail');
+
+navDashboard.onclick = ()=> show('dashboard');
+navAdd.onclick = ()=> show('add');
+navSettings.onclick = ()=> show('settings');
+logoutBtn.onclick = ()=> { localStorage.removeItem('mf_token'); location.href = '/login.html'; };
+
+function show(v){
+  dashboardView.style.display = v==='dashboard' ? 'block' : 'none';
+  addView.style.display = v==='add' ? 'block' : 'none';
+  settingsView.style.display = v==='settings' ? 'block' : 'none';
+  pageTitle.textContent = v==='dashboard' ? 'Dashboard' : (v==='add' ? 'Add Movie' : 'Settings');
+  navDashboard.classList.toggle('active', v==='dashboard');
+  navAdd.classList.toggle('active', v==='add');
+  navSettings.classList.toggle('active', v==='settings');
+  if(v==='dashboard') loadDashboard();
+  if(v==='add') loadAllMovies();
+}
+
+async function apiFetch(path, opts={}){
+  opts.headers = opts.headers || {};
+  opts.headers['Content-Type'] = 'application/json';
+  opts.headers['Authorization'] = 'Bearer ' + token;
+  const r = await fetch(API_BASE + path, opts);
+  if(r.status===401){ localStorage.removeItem('mf_token'); location.href = '/login.html'; }
+  return r.json();
+}
+
+/* Dashboard */
+async function loadDashboard(){
+  const movies = await apiFetch('/movies');
+  document.getElementById('totalMovies').textContent = (movies || []).length;
+  document.getElementById('withDirect').textContent = (movies || []).filter(m=> {
+    const q = m.qualities || {}; return Object.keys(q).some(k=> q[k].direct);
+  }).length;
+  document.getElementById('withTelegram').textContent = (movies || []).filter(m=> {
+    const q = m.qualities || {}; return Object.keys(q).some(k=> q[k].telegram);
+  }).length;
+  adminEmail.textContent = localStorage.getItem('admin_email') || '';
+
+  const recent = (movies||[]).slice().reverse().slice(0,8);
+  const recentList = document.getElementById('recentList');
+  recentList.innerHTML = '';
+  recent.forEach(m=>{
+    const div = document.createElement('div'); div.className='movie-card card';
+    div.innerHTML = `<img src="${m.poster||'https://via.placeholder.com/400x600?text=No+Poster'}"><h4 style="margin:8px 0 4px 0">${m.title}</h4><div class="small">${m.year||''}</div>`;
+    recentList.appendChild(div);
+  });
+}
+
+/* Add movie */
+document.getElementById('addMovieBtn').onclick = async ()=>{
+  const title = document.getElementById('titleInput').value.trim();
+  const genres = (document.getElementById('genresInput').value || '').split(',').map(s=>s.trim()).filter(Boolean);
+  const qualities = {};
+  const d480 = document.getElementById('direct480').value.trim();
+  const t480 = document.getElementById('tg480').value.trim();
+  if(d480 || t480) qualities['480p'] = { direct: d480, telegram: t480 };
+
+  const d720 = document.getElementById('direct720').value.trim();
+  const t720 = document.getElementById('tg720').value.trim();
+  if(d720 || t720) qualities['720p'] = { direct: d720, telegram: t720 };
+
+  const d1080 = document.getElementById('direct1080').value.trim();
+  const t1080 = document.getElementById('tg1080').value.trim();
+  if(d1080 || t1080) qualities['1080p'] = { direct: d1080, telegram: t1080 };
+
+  if(!title){ alert('Enter title'); return; }
+  const res = await apiFetch('/movies', { method:'POST', body: JSON.stringify({ title, qualities, genres }) });
+  if(res && res.success){ alert('Added'); document.getElementById('titleInput').value=''; document.getElementById('genresInput').value=''; document.getElementById('direct480').value=''; document.getElementById('tg480').value=''; document.getElementById('direct720').value=''; document.getElementById('tg720').value=''; document.getElementById('direct1080').value=''; document.getElementById('tg1080').value=''; loadAllMovies(); loadDashboard(); }
+  else alert(res.error||'Error');
+};
+
+/* Load all movies for editing */
+async function loadAllMovies(){
+  const movies = await apiFetch('/movies');
+  const allMovies = document.getElementById('allMovies'); allMovies.innerHTML = '';
+  (movies||[]).forEach(m=>{
+    const d = document.createElement('div'); d.className='movie-card card';
+    d.innerHTML = `
+      <img src="${m.poster||'https://via.placeholder.com/400x600?text=No+Poster'}">
+      <h4 style="margin:6px 0">${m.title}</h4>
+      <div class="small">${m.year||''}</div>
+      <div class="actions">
+        <button class="btn" onclick='editMovie("${m._id}")'>Edit</button>
+        <button class="btn btn-danger" onclick='deleteMovie("${m._id}")'>Delete</button>
+      </div>
+    `;
+    allMovies.appendChild(d);
+  });
+}
+
+/* Edit/Delete */
+window.editMovie = async (id) => {
+  const title = prompt('New title (leave blank to keep)');
+  const body = {};
+  if(title) body.title = title;
+  if(Object.keys(body).length===0) return;
+  const res = await apiFetch('/movies/' + id, { method:'PUT', body: JSON.stringify(body) });
+  if(res && res.success){ alert('Updated'); loadAllMovies(); loadDashboard(); } else alert(res.error||'Error');
+}
+window.deleteMovie = async (id) => {
+  if(!confirm('Delete this movie?')) return;
+  const res = await apiFetch('/movies/' + id, { method:'DELETE' });
+  if(res && res.success){ alert('Deleted'); loadAllMovies(); loadDashboard(); } else alert(res.error||'Error');
+}
+
+/* initial */
+show('dashboard');
+</script>
+</body>
+</html>
