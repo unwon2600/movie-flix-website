@@ -1,0 +1,41 @@
+<script>
+async function loadMovie() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  if(!id) { document.getElementById('movie-details').innerText = 'No movie id'; return; }
+  try {
+    const res = await fetch('/api/movies/' + id);
+    if(!res.ok) throw new Error('Not found');
+    const m = await res.json();
+    document.getElementById('movie-details').innerHTML = `
+      <h1>${m.title}</h1>
+      <img src="${m.poster||''}" style="max-width:300px"/>
+      <p>${(m.genre||[]).join(', ')}</p>
+      <p>${m.description || ''}</p>
+      <div id="qualities"></div>
+    `;
+    const qualities = m.qualities || {};
+    const qDiv = document.getElementById('qualities');
+    Object.keys(qualities).forEach(q=>{
+      const info = qualities[q] || {};
+      if(info.direct) {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = `Download ${q}`;
+        a.onclick = (ev)=>{ ev.preventDefault(); const an = document.createElement('a'); an.href = info.direct; an.setAttribute('download',''); document.body.appendChild(an); an.click(); an.remove(); };
+        qDiv.appendChild(a);
+      }
+      if(info.telegram) {
+        const b = document.createElement('a');
+        b.href = info.telegram; b.target = '_blank'; b.textContent = `Telegram ${q}`;
+        qDiv.appendChild(b);
+      }
+    });
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById('movie-details').innerText = 'Unable to load movie';
+  }
+}
+loadMovie();
+</script>
