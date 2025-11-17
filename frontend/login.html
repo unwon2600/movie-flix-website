@@ -1,0 +1,20 @@
+<script>
+  async function postJSON(url, body){
+    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    return r.json();
+  }
+
+  document.getElementById('loginBtn').onclick = async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    if (!email || !password) return alert('Enter email & password');
+    const res = await postJSON('/api/admin/login', { email, password });
+    if (res && res.token) {
+      localStorage.setItem('mf_token', res.token);
+      localStorage.setItem('admin_email', email);
+      window.location.href = '/admin.html';
+    } else {
+      alert(res.error || 'Login failed');
+    }
+  };
+</script>
